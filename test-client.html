@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Relay Server - Test Client</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 { margin-bottom: 10px; }
+        .content { padding: 30px; }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status.connected { background: #d4edda; color: #155724; }
+        .status.disconnected { background: #f8d7da; color: #721c24; }
+        .status .indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        .status.connected .indicator { background: #28a745; }
+        .status.disconnected .indicator { background: #dc3545; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .section h3 {
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        select, input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 15px;
+            font-family: inherit;
+        }
+        select:focus, input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+        }
+        button:hover { transform: translateY(-2px); }
+        button:active { transform: translateY(0); }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .logs {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        .log-entry.info { color: #4fc3f7; }
+        .log-entry.success { color: #81c784; }
+        .log-entry.error { color: #e57373; }
+        .log-entry.warning { color: #ffb74d; }
+        .timestamp { color: #9e9e9e; margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔌 WebSocket Relay Server</h1>
+            <p>Test Client for Phone Dialer System</p>
+        </div>
+        
+        <div class="content">
+            <!-- Connection Status -->
+            <div id="status" class="status disconnected">
+                <div class="indicator"></div>
+                <span>Disconnected</span>
+            </div>
+
+            <!-- Connection Settings -->
+            <div class="section">
+                <h3>⚙️ Connection</h3>
+                <label for="serverUrl">Server URL</label>
+                <input type="text" id="serverUrl" value="http://localhost:3000" placeholder="http://localhost:3000">
+                
+                <label for="clientType">Client Type</label>
+                <select id="clientType">
+                    <option value="extension">Chrome Extension</option>
+                    <option value="android">Android App</option>
+                </select>
+                
+                <button id="connectBtn" onclick="connect()">Connect</button>
+            </div>
+
+            <!-- Send Call Request (Extension Mode) -->
+            <div class="section" id="extensionSection" style="display: none;">
+                <h3>📞 Send Call Request</h3>
+                <label for="phoneNumber">Phone Number</label>
+                <input type="tel" id="phoneNumber" value="+390444784500" placeholder="+390444784500">
+                
+                <label for="source">Source URL</label>
+                <input type="text" id="source" value="https://dashboard.example.com/contacts/123" placeholder="https://dashboard.example.com/contacts/123">
+                
+                <button onclick="sendCallRequest()">Send to Android</button>
+            </div>
+
+            <!-- Send Call Status (Android Mode) -->
+            <div class="section" id="androidSection" style="display: none;">
+                <h3>📊 Send Call Status</h3>
+                <label for="statusPhone">Phone Number</label>
+                <input type="tel" id="statusPhone" value="+390444784500" placeholder="+390444784500">
+                
+                <label for="callStatus">Call Status</label>
+                <select id="callStatus">
+                    <option value="calling">Calling</option>
+                    <option value="answered">Answered</option>
+                    <option value="ended">Ended</option>
+                    <option value="missed">Missed</option>
+                </select>
+                
+                <button onclick="sendCallStatus()">Send to Extension</button>
+            </div>
+
+            <!-- Logs -->
+            <div class="section">
+                <h3>📋 Activity Log</h3>
+                <div id="logs" class="logs">
+                    <div class="log-entry info">
+                        <span class="timestamp">[Ready]</span>
+                        <span>Waiting for connection...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        let socket = null;
+        let clientType = 'extension';
+
+        function log(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.innerHTML = `<span class="timestamp">[${timestamp}]</span><span>${message}</span>`;
+            logsDiv.appendChild(entry);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        function updateStatus(connected) {
+            const statusDiv = document.getElementById('status');
+            const connectBtn = document.getElementById('connectBtn');
+            
+            if (connected) {
+                statusDiv.className = 'status connected';
+                statusDiv.innerHTML = '<div class="indicator"></div><span>Connected</span>';
+                connectBtn.textContent = 'Disconnect';
+                connectBtn.onclick = disconnect;
+            } else {
+                statusDiv.className = 'status disconnected';
+                statusDiv.innerHTML = '<div class="indicator"></div><span>Disconnected</span>';
+                connectBtn.textContent = 'Connect';
+                connectBtn.onclick = connect;
+            }
+        }
+
+        function updateSections() {
+            const type = document.getElementById('clientType').value;
+            clientType = type;
+            
+            if (type === 'extension') {
+                document.getElementById('extensionSection').style.display = 'block';
+                document.getElementById('androidSection').style.display = 'none';
+            } else {
+                document.getElementById('extensionSection').style.display = 'none';
+                document.getElementById('androidSection').style.display = 'block';
+            }
+        }
+
+        document.getElementById('clientType').addEventListener('change', updateSections);
+
+        function connect() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            clientType = document.getElementById('clientType').value;
+
+            log(`Connecting to ${serverUrl} as ${clientType}...`, 'info');
+
+            socket = io(serverUrl, {
+                transports: ['websocket', 'polling']
+            });
+
+            socket.on('connect', () => {
+                log('✅ Connected to server', 'success');
+                updateStatus(true);
+                
+                // Identify client
+                socket.emit('identify', {
+                    clientType: clientType,
+                    userId: 'test-user-' + Math.random().toString(36).substr(2, 9)
+                });
+                
+                updateSections();
+            });
+
+            socket.on('identified', (data) => {
+                log(`✅ Identified as ${data.clientType}`, 'success');
+            });
+
+            socket.on('message', (data) => {
+                log(`📨 Received: ${JSON.stringify(data)}`, 'success');
+            });
+
+            socket.on('call_request_ack', (data) => {
+                log(`✅ Call request acknowledged: ${data.message}`, 'success');
+            });
+
+            socket.on('call_status_update', (data) => {
+                log(`📊 Call status update: ${data.phoneNumber} - ${data.status}`, 'success');
+            });
+
+            socket.on('disconnect', (reason) => {
+                log(`❌ Disconnected: ${reason}`, 'error');
+                updateStatus(false);
+            });
+
+            socket.on('error', (error) => {
+                log(`❌ Error: ${error}`, 'error');
+            });
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+                log('Disconnected', 'warning');
+                updateStatus(false);
+            }
+        }
+
+        function sendCallRequest() {
+            if (!socket) {
+                alert('Please connect first!');
+                return;
+            }
+
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            const source = document.getElementById('source').value;
+
+            const data = {
+                number: phoneNumber,
+                source: source,
+                timestamp: new Date().toISOString()
+            };
+
+            socket.emit('call_request', data);
+            log(`📞 Sent call request: ${phoneNumber}`, 'info');
+        }
+
+        function sendCallStatus() {
+            if (!socket) {
+                alert('Please connect first!');
+                return;
+            }
+
+            const phoneNumber = document.getElementById('statusPhone').value;
+            const status = document.getElementById('callStatus').value;
+
+            const data = {
+                phoneNumber: phoneNumber,
+                status: status,
+                timestamp: new Date().toISOString()
+            };
+
+            socket.emit('call_status', data);
+            log(`📊 Sent call status: ${phoneNumber} - ${status}`, 'info');
+        }
+    </script>
+</body>
+</html>
+

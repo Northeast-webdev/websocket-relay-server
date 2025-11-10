@@ -1,0 +1,27 @@
+{
+  "name": "websocket-relay-server",
+  "version": "1.0.0",
+  "description": "WebSocket relay server for Phone Dialer - connects Chrome Extension to Android App",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "websocket",
+    "relay",
+    "phone-dialer"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "socket.io": "^4.7.2",
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+
